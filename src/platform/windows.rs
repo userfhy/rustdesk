@@ -2278,6 +2278,10 @@ fn get_shortcut_icon_location(install_dir: &str, exe: &str) -> String {
 }
 
 pub fn create_shortcut(id: &str) -> ResultType<()> {
+    if !crate::common::is_valid_untrusted_peer_id(id) {
+        bail!("Invalid peer id for shortcut");
+    }
+
     let exe = std::env::current_exe()?.to_str().unwrap_or("").to_owned();
     // https://github.com/rustdesk/rustdesk/issues/13735
     // Replace ':' with '_' for filename since ':' is not allowed in Windows filenames
@@ -3647,10 +3651,9 @@ pub fn update_to(file: &str) -> ResultType<()> {
 //    `1` and `3` must be done in custom actions.
 //    We need also to handle the command line parsing to find the tray processes.
 pub fn update_me_msi(msi: &str, quiet: bool) -> ResultType<()> {
-    let cmds = format!(
-        "chcp 65001 && msiexec /i {msi} {}",
-        if quiet { "/qn LAUNCH_TRAY_APP=N" } else { "" }
-    );
+    let quiet_args = if quiet { " /qn LAUNCH_TRAY_APP=N" } else { "" };
+    let cmds =
+        format!("chcp 65001 && msiexec /i \"{msi}\"{quiet_args} REBOOT=ReallySuppress /norestart");
     run_cmds(cmds, false, "update-msi")?;
     Ok(())
 }
